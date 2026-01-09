@@ -1,0 +1,25 @@
+[project]
+name = "schoolsim"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Baptiste Lafoux", email = "baptiste.lafoux@dice-engineering.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "numpy>=2.4.0",
+]
+
+[project.scripts]
+schoolsim = "schoolsim:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pyright]
+pythonPlatform = "Linux"
+venvPath = "."
+venv = ".venv"
+extraPaths = ["src"]
