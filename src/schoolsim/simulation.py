@@ -13,7 +13,7 @@ class SimulationParameters:
     epsilon: float
     tau: float
     v0: float
-    integration_method: Literal["verlet", "euler", "runge_kutta", "runge_kutta_4"]
+    integration_scheme: Literal["euler", "symplectic_euler"]
     tank_shape: Literal["rectangle", "circle"]
     tank_size: tuple[int, int] | int
     v_initial: float
@@ -23,11 +23,11 @@ class SimulationParameters:
     delta: float
     gamma_wall: float
 
-def run_simulation(params: SimulationParameters) -> list[tuple[float, Snapshot]]:
+def run_simulation(params: SimulationParameters) -> Recorder:
     school = School(n_fish=params.n_fish)
     school.initialize_in_bounds(params.tank_shape, params.tank_size, params.v_initial)
     recorder = Recorder()
     for step in range(params.num_steps):
-        state = school.make_step(params.dt, params)
+        state = school.make_step(params)
         recorder.record(snapshot=state, timestamp=step*params.dt)
-    return recorder.snapshots
+    return recorder
