@@ -172,4 +172,9 @@ class ForcesCalculator:
                 return self.get_wall_force_circle(cast(int, tank_size), delta, gammawall)
             case _:
                 raise ValueError(f"Invalid tank shape: {tank_shape}")
+
+    def get_attraction_and_alignment_force(self, a: float, Ra: float, J: float) -> tuple[np.ndarray, np.ndarray]:
+        """Numba-accelerated fused attraction + alignment computation."""
+        from .forces_numba import compute_neighbor_forces
+        return compute_neighbor_forces(self.X, self.V, self.fov_radius, a, Ra, J)
             

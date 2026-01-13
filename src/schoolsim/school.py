@@ -30,8 +30,9 @@ class School:
             self.positions, self.velocities, params.fov_radius
         )
 
-        f_attraction = calculator.get_attraction_force(params.a, params.Ra)
-        f_alignment = calculator.get_alignment_force(params.J)
+        f_attraction, f_alignment = calculator.get_attraction_and_alignment_force(
+            params.a, params.Ra, params.J
+        )
         f_noise = calculator.get_noise_force(params.epsilon, self.n_fish)
         f_propulsion = calculator.get_propulsion_force(params.tau, params.v0)
         f_wall = calculator.get_wall_force(params.tank_shape, params.tank_size, params.delta, params.gamma_wall)
