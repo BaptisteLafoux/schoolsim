@@ -26,7 +26,7 @@ class ForcesCalculator:
     def _kdtree(self) -> cKDTree:
         """KD-tree for efficient neighbor search"""
         return cKDTree(self.X.T)  # cKDTree expects (N, 2)
-
+    
     @cached_property
     def _neighbor_pairs(self) -> tuple[np.ndarray, np.ndarray]:
         """Sparse neighbor indices: (i_indices, j_indices) for pairs within fov_radius"""
@@ -39,7 +39,7 @@ class ForcesCalculator:
             np.concatenate([i_idx, j_idx]).astype(np.int32),
             np.concatenate([j_idx, i_idx]).astype(np.int32)
         )
-
+    
     @cached_property
     def _sparse_Xij(self) -> np.ndarray:
         """Xij for neighbor pairs: X_j - X_i (direction from i to j), shape (2, n_pairs)"""
@@ -47,12 +47,12 @@ class ForcesCalculator:
         if len(i_idx) == 0:
             return np.zeros((2, 0), dtype=np.float32)
         return self.X[:, j_idx] - self.X[:, i_idx]
-
+    
     @cached_property
     def _sparse_rij(self) -> np.ndarray:
         """Distance for neighbor pairs: shape (n_pairs,)"""
         return np.linalg.norm(self._sparse_Xij, axis=0)
-
+    
     @cached_property
     def _sparse_rij_safe(self) -> np.ndarray:
         """rij with minimum value to avoid division by zero"""
@@ -73,7 +73,7 @@ class ForcesCalculator:
         if len(i_idx) == 0:
             return np.zeros((2, 0), dtype=np.float32)
         return self.V[:, j_idx] - self.V[:, i_idx]
-
+    
     @cached_property
     def n_in_fov(self) -> np.ndarray:
         """Number of neighbors for each fish (excluding self): shape (N,)"""
@@ -85,7 +85,7 @@ class ForcesCalculator:
     def Vnorm(self) -> np.ndarray:
         """||V_i|| : norm of the velocities -- shape (N,)"""
         return np.linalg.norm(self.V, axis=0)
-
+    
     def get_noise_force(self, epsilon: float, n_fish: int) -> np.ndarray:
         return np.random.normal(0, epsilon, (2, n_fish)).astype(np.float32)
 
@@ -103,18 +103,18 @@ class ForcesCalculator:
         i_idx, _ = self._neighbor_pairs
         if len(i_idx) == 0:
             return np.zeros((2, self.n_fish), dtype=np.float32)
-        
+    
         # Sum Vij contributions per fish
         F = np.zeros((2, self.n_fish), dtype=np.float32)
         np.add.at(F.T, i_idx, self._sparse_Vij.T)
-        
+
         return J * F / self.n_in_fov
 
     def get_attraction_force(self, a: float, Ra: float) -> np.ndarray:
         r"""Attraction-repulsion force using sparse neighbor computation.
-
+            
         F_att = a * \sum_{j in neighbors} [ Xij/r - Ra^2 * Xij/r^3 ] / n_neighbors
-        
+            
         Returns:
             np.ndarray: Attraction force -- shape (2, N)
         """
@@ -172,5 +172,4 @@ class ForcesCalculator:
                 return self.get_wall_force_circle(cast(int, tank_size), delta, gammawall)
             case _:
                 raise ValueError(f"Invalid tank shape: {tank_shape}")
-            
             

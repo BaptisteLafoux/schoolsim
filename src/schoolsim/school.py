@@ -1,16 +1,22 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import numpy as np
 
-from . import integration
+from .integration import run_integration
 from .forces import ForcesCalculator
 from .initializer import initialize_positions, initialize_velocities
 from .recorder import Snapshot
-from .simulation import SimulationParameters
 
+if TYPE_CHECKING:
+    from .simulation import SimulationParameters
 
+        
 class School:
     def __init__(self, n_fish: int):
         self.n_fish = n_fish
-
+    
     def initialize_in_bounds(
         self, tank_shape: str, tank_size: tuple[int, int] | int, v_initial: float = 1.0
     ) -> None:
@@ -19,7 +25,7 @@ class School:
         self.positions: np.ndarray = initial_positions
         self.velocities: np.ndarray = initial_velocities
 
-    def make_step(self, dt: float, params: SimulationParameters) -> Snapshot:
+    def make_step(self, params: SimulationParameters) -> Snapshot:
         calculator = ForcesCalculator(
             self.positions, self.velocities, params.fov_radius
         )
@@ -30,24 +36,17 @@ class School:
         f_propulsion = calculator.get_propulsion_force(params.tau, params.v0)
         f_wall = calculator.get_wall_force(params.tank_shape, params.tank_size, params.delta, params.gamma_wall)
 
-        self.velocities = (
-            self.velocities + (f_attraction + f_alignment + f_noise + f_propulsion + f_wall) * dt
-        )
+        total_force = f_attraction + f_alignment + f_noise + f_propulsion + f_wall
 
-        self.positions = integration.verlet(
+        self.positions, self.velocities = run_integration(params.integration_scheme, self.positions, self.velocities, total_force, params.dt)
+        
+        return Snapshot(
             self.positions,
             self.velocities,
-            f_attraction + f_alignment + f_noise + f_propulsion,
-            dt,
+            f_attraction,
+            f_alignment,
+            f_noise,
+            f_propulsion,
+            f_wall,
         )
-
-        self.positions = self.positions + self.velocities * dt
-
-        return Snapshot(
-            positions=self.positions,
-            velocities=self.velocities,
-            f_attraction=f_attraction,
-            f_alignment=f_alignment,
-            f_noise=f_noise,
-            f_propulsion=f_propulsion,
-        )
+    

@@ -3,18 +3,20 @@ import numpy as np
 def initialize_positions_rectangle(
     n_fish: int, tank_size: tuple[int, int]
 ) -> np.ndarray:
+    """Initialize positions in rectangle tank. Returns shape (2, N)."""
     w, h = tank_size
     x = np.random.uniform(-w / 2, w / 2, n_fish)
     y = np.random.uniform(-h / 2, h / 2, n_fish)
-    return np.c_[x, y]
+    return np.array([x, y])
 
 
 def initialize_positions_circle(n_fish: int, tank_radius: int) -> np.ndarray:
+    """Initialize positions in circular tank. Returns shape (2, N)."""
     theta = np.random.uniform(0, 2 * np.pi, n_fish)
     r = np.random.uniform(0, tank_radius, n_fish)
     x = r * np.cos(theta)
     y = r * np.sin(theta)
-    return np.c_[x, y]
+    return np.array([x, y])
 
 
 def initialize_velocities(n_fish: int, v_initial: float) -> np.ndarray:

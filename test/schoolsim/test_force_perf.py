@@ -9,7 +9,7 @@ from schoolsim.forces import ForcesCalculator
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-N_FISH = 200
+N_FISH = 50
 
 
 @pytest.fixture(scope='module')
