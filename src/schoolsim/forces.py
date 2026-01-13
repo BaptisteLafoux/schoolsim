@@ -25,7 +25,10 @@ class ForcesCalculator:
     @cached_property
     def rij(self) -> np.ndarray:
         """ r_ij = ||X_i - X_j|| : distance between each individual and all other individuals -- shape (N, N) """
-        return np.linalg.norm(self.Xij, axis=0) 
+        r = np.linalg.norm(self.Xij, axis=0)
+        # Fill diagonal with 1 to avoid division by zero (self-distance)
+        np.fill_diagonal(r, 1.0)
+        return r 
     
     @cached_property
     def Vnorm(self) -> np.ndarray:
@@ -49,8 +52,10 @@ class ForcesCalculator:
     
     @cached_property
     def n_in_fov(self) -> np.ndarray:
-        """ n_in_fov_i = sum(fov_ij) : number of individuals in the field of view of each individual -- shape (N, ) """
-        return self.fov.sum(axis=1)
+        """ n_in_fov_i = sum(fov_ij) - 1 : number of neighbors in the field of view (excluding self) -- shape (N, ) """
+        # Subtract 1 to exclude self (diagonal is always in fov since rij[i,i] = 0 < fov_radius)
+        # Use maximum to avoid 0 (for division safety)
+        return np.maximum(self.fov.sum(axis=1) - 1, 1)
     
     def get_noise_force(self, epsilon: float, n_fish: int):
         return np.random.normal(0, epsilon, (2, n_fish))
@@ -70,6 +75,12 @@ class ForcesCalculator:
         """
         return J * (self.Vij * self.fov / self.n_in_fov).sum(axis=2) # axis=2 sums over j
     
+    @cached_property
+    def _non_self_mask(self) -> np.ndarray:
+        """Mask that is 0 on diagonal, 1 elsewhere -- shape (N, N)"""
+        n = self.X.shape[1]
+        return 1 - np.eye(n)
+
     def get_attraction_force(self, a: float, Ra: float):
         """This function will calculate the attraction-repulsion force for each individual:
 
@@ -80,8 +91,9 @@ class ForcesCalculator:
         Returns:
             `np.array`: Attraction force -- shape (2, N)
         """
-        
-        return a * ((self.Xij / self.rij -  (Ra**2) * self.Xij / (self.rij**3)) * self.fov / self.n_in_fov).sum(axis=2)
+        # Mask out self-interactions (diagonal)
+        mask = self.fov * self._non_self_mask
+        return a * ((self.Xij / self.rij - (Ra**2) * self.Xij / (self.rij**3)) * mask / self.n_in_fov).sum(axis=2)
     
     def get_wall_force_rectangle(self, tank_size: tuple[int, int], delta: float, gammawall: float):
         """ Wall repulsion force for rectangular tank centered at origin."""
@@ -121,7 +133,8 @@ class ForcesCalculator:
         d_wall = radius - r  # shape (N,)
         
         # Radial unit vector (pointing outward from center)
-        n_radial = self.X / r  # shape (2, N)
+        r_safe = np.maximum(r, 1e-10)  # Avoid division by zero for fish at center
+        n_radial = self.X / r_safe  # shape (2, N)
         
         # Repulsion strength
         inv_delta = 1 / delta
