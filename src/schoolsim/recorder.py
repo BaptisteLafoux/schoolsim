@@ -14,12 +14,7 @@ if TYPE_CHECKING:
 class Snapshot:
     positions: np.ndarray
     velocities: np.ndarray
-    f_attraction: np.ndarray
-    f_alignment: np.ndarray
-    f_noise: np.ndarray
-    f_propulsion: np.ndarray
-    f_wall: np.ndarray
-    f_flee: np.ndarray | None
+    forces: dict[str, np.ndarray]
 
 @dataclass(slots=True)
 class PredatorSnapshot:
@@ -62,26 +57,13 @@ class Recorder:
                     ("time", "dim", "fish"),
                     [snapshot.velocities for snapshot in data],
                 ),
-                "f_attraction": (
-                    ("time", "dim", "fish"),
-                    [snapshot.f_attraction for snapshot in data],
-                ),
-                "f_alignment": (
-                    ("time", "dim", "fish"),
-                    [snapshot.f_alignment for snapshot in data],
-                ),
-                "f_noise": (
-                    ("time", "dim", "fish"),
-                    [snapshot.f_noise for snapshot in data],
-                ),
-                "f_propulsion": (
-                    ("time", "dim", "fish"),
-                    [snapshot.f_propulsion for snapshot in data],
-                ),
-                "f_wall": (
-                    ("time", "dim", "fish"),
-                    [snapshot.f_wall for snapshot in data],
-                ),
+                **{
+                    force_name: (
+                        ("time", "dim", "fish"),
+                        [snapshot.forces[force_name] for snapshot in data],
+                    )
+                    for force_name in data[0].forces
+                },
             },
             coords={
                 "time": np.array(timestamps),

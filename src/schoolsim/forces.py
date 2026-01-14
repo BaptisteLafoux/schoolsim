@@ -81,7 +81,7 @@ class ForcesCalculator:
         n = self.X.shape[1]
         return 1 - np.eye(n)
 
-    def get_attraction_force(self, a: float, Ra: float):
+    def get_attraction_force(self, a: float, Ra: float) -> np.ndarray:
         """This function will calculate the attraction-repulsion force for each individual:
 
             F_att = a * \sum_{j=1}^N [ xij / ||xij|| - Ra^2 * xij / ||xij||^3 ] * Z_att/N_i,att
@@ -95,7 +95,7 @@ class ForcesCalculator:
         mask = self.fov * self._non_self_mask
         return a * ((self.Xij / self.rij - (Ra**2) * self.Xij / (self.rij**3)) * mask / self.n_in_fov).sum(axis=2)
     
-    def get_wall_force_rectangle(self, tank_size: tuple[int, int], delta: float, gammawall: float):
+    def get_wall_force_rectangle(self, tank_size: tuple[int, int], delta: float, gammawall: float) -> np.ndarray:
         """ Wall repulsion force for rectangular tank centered at origin."""
         # Distances to walls: [North, South, East, West] for each fish
         # Tank spans from -W/2 to W/2 (x) and -H/2 to H/2 (y)
@@ -124,7 +124,7 @@ class ForcesCalculator:
         
         return gammawall * F
 
-    def get_wall_force_circle(self, radius: float, delta: float, gammawall: float):
+    def get_wall_force_circle(self, radius: float, delta: float, gammawall: float) -> np.ndarray:
         """Wall repulsion force for circular tank centered at origin."""
         # Distance from center
         r = np.linalg.norm(self.X, axis=0)  # shape (N,)
@@ -149,7 +149,7 @@ class ForcesCalculator:
         
         return gammawall * F
     
-    def get_wall_force(self, tank_shape: str, tank_size: tuple[int, int] | int, delta: float, gammawall: float):
+    def get_wall_force(self, tank_shape: str, tank_size: tuple[int, int] | int, delta: float, gammawall: float) -> np.ndarray:
         match tank_shape:
             case "rectangle":
                 return self.get_wall_force_rectangle(cast(tuple[int, int], tank_size), delta, gammawall)
@@ -174,3 +174,22 @@ class ForcesCalculator:
         strength = flee_strength * (1 / dist_safe) * in_range
         
         return direction * strength
+
+    def get_chase_force(self, targets: np.ndarray) -> np.ndarray:
+        """Force toward a target position, scaled by current speed."""
+        centroid = targets.mean(axis=1)
+        diff = centroid[:, None] - self.X  # (2, N)
+        dist = np.linalg.norm(diff, axis=0)  # (N,)
+        dist_safe = np.maximum(dist, 1e-10)
+        direction = diff / dist_safe
+        return self.Vnorm * direction
+    
+    def get_chase_force_toward_nearest_fish(self, targets: np.ndarray) -> np.ndarray:
+        """Force toward a target position, scaled by current speed."""
+        nearest_fish_index = np.argmin(np.linalg.norm(targets - self.X, axis=0))
+        nearest_fish_position = targets[:, nearest_fish_index]
+        diff = nearest_fish_position[:, None] - self.X  # (2, N)
+        dist = np.linalg.norm(diff, axis=0)  # (N,)
+        dist_safe = np.maximum(dist, 1e-10)
+        direction = diff / dist_safe
+        return self.Vnorm * direction

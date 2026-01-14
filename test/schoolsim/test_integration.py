@@ -85,10 +85,8 @@ class TestSimulationPhysics:
         recorder = run_simulation(base_params)
         
         for _, snapshot, _ in recorder.snapshots:
-            assert np.all(np.isfinite(snapshot.f_attraction))
-            assert np.all(np.isfinite(snapshot.f_alignment))
-            assert np.all(np.isfinite(snapshot.f_propulsion))
-            assert np.all(np.isfinite(snapshot.f_wall))
+            for force in snapshot.forces.values():
+                assert np.all(np.isfinite(force))
 
 
 class TestPredatorBehavior:
@@ -122,7 +120,7 @@ class TestHeterogeneousV0:
         
         # Forces should still be finite
         _, final_snap, _ = recorder.snapshots[-1]
-        assert np.all(np.isfinite(final_snap.f_propulsion))
+        assert np.all(np.isfinite(final_snap.forces["f_propulsion"]))
 
     def test_v0_wrong_shape_raises(self, base_params: SimulationParameters):
         """Wrong v0 array shape should raise ValueError."""

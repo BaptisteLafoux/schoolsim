@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 
@@ -38,28 +38,39 @@ class School:
         f_wall = calculator.get_wall_force(
             params.tank_shape, params.tank_size, params.delta, params.gamma_wall
         )
+        f_flee = (
+            calculator.get_flee_force(predator.position, params.fov_radius, params.flee_strength)
+            if predator
+            else np.zeros_like(f_attraction)
+        )
 
-        total_force = f_attraction + f_alignment + f_noise + f_propulsion + f_wall
-        
-        if predator:
-            f_flee = calculator.get_flee_force(predator.position, params.fov_radius, params.flee_strength)
-            total_force += f_flee
+        forces = {
+            "f_attraction": f_attraction,
+            "f_alignment": f_alignment,
+            "f_noise": f_noise,
+            "f_propulsion": f_propulsion,
+            "f_wall": f_wall,
+            "f_flee": f_flee,
+        }
+
+        total_force = sum(forces.values())
 
         self.positions, self.velocities = run_integration(
             params.integration_scheme,
             self.positions,
             self.velocities,
-            total_force,
+            total_force, # type: ignore[arg-type]
             params.dt,
         )
 
-        return Snapshot(
-            self.positions,
-            self.velocities,
-            f_attraction,
-            f_alignment,
-            f_noise,
-            f_propulsion,
-            f_wall,
-            f_flee if predator else None, # type: ignore
-        )
+        # if self.is_out_of_bounds(params.tank_size):
+        #     raise ValueError("School is out of bounds")
+
+        return Snapshot(self.positions, self.velocities, forces)
+
+    def is_out_of_bounds(self, tank_size: tuple[int, int] | int) -> bool:
+        if isinstance(tank_size, tuple):
+            W, H = cast(tuple[int, int], tank_size)
+            return bool(np.any(np.abs(self.positions) > max(W, H) / 2))
+        else:
+            return bool(np.any(np.abs(self.positions) > tank_size / 2))

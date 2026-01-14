@@ -1,6 +1,7 @@
 import click
 
 from .simulation import SimulationParameters, run_simulation
+from .visualization import render_movie
 
 
 @click.group()
@@ -12,14 +13,14 @@ def ssim() -> None:
 @ssim.command()
 @click.option("--n-fish", "-n", default=100, help="Number of fish")
 @click.option("--steps", "-s", default=1000, help="Number of simulation steps")
-@click.option("--dt", default=0.01, help="Time step")
+@click.option("--dt", default=0.05, help="Time step")
 @click.option("--fov-radius", default=2.0, help="Field of view radius")
 @click.option("--tank-shape", type=click.Choice(["rectangle", "circle"]), default="rectangle")
-@click.option("--tank-width", default=20, help="Tank width (rectangle) or radius (circle)")
-@click.option("--tank-height", default=20, help="Tank height (rectangle only)")
+@click.option("--tank-width", default=10, help="Tank width (rectangle) or radius (circle)")
+@click.option("--tank-height", default=10, help="Tank height (rectangle only)")
 @click.option("--integration", type=click.Choice(["euler", "symplectic_euler"]), default="symplectic_euler")
 @click.option("--v0", default=1.0, help="Target velocity")
-@click.option("--v-initial", default=0.5, help="Initial velocity")
+@click.option("--v-initial", default=1, help="Initial velocity")
 @click.option("--a", default=1.0, help="Attraction strength")
 @click.option("--Ra", default=0.5, help="Repulsion radius")
 @click.option("--J", default=1.0, help="Alignment strength")
@@ -31,6 +32,9 @@ def ssim() -> None:
 @click.option("--predator-speed", default=1.5, help="Predator initial velocity")
 @click.option("--flee-strength", default=2.0, help="Fish flee force strength")
 @click.option("--output", "-o", type=click.Path(), help="Output file path")
+@click.option("--movie", type=click.Path(), help="Save an animation of the run (GIF or MP4).")
+@click.option("--movie-fps", default=24, help="Frames per second for the animation.")
+@click.option("--movie-dpi", default=120, help="Animation DPI.")
 def run(
     n_fish: int,
     steps: int,
@@ -53,6 +57,9 @@ def run(
     predator_speed: float,
     flee_strength: float,
     output: str | None,
+    movie: str | None,
+    movie_fps: int,
+    movie_dpi: int,
 ) -> None:
     """Run a fish schooling simulation."""
     tank_size: tuple[int, int] | int = tank_width if tank_shape == "circle" else (tank_width, tank_height)
@@ -84,8 +91,12 @@ def run(
     click.echo(f"Completed! {len(recorder.snapshots)} snapshots recorded.")
 
     if output:
-        click.echo(f"Output would be saved to: {output}")
+        click.echo(f"Saving dataset to {output}…")
         recorder.save_to_netcdf(output, params)
+
+    if movie:
+        click.echo(f"Rendering animation to {movie}…")
+        render_movie(recorder, movie, fps=movie_fps, dpi=movie_dpi)
 
 
 @ssim.command()

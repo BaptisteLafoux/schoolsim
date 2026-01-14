@@ -14,13 +14,21 @@ class TestPredatorUpdate:
     @pytest.fixture
     def predator(self) -> Predator:
         p = Predator()
-        p.position = np.array([[0.0], [0.0]])  # (2, 1)
-        p.velocity = np.array([[1.0], [0.0]])  # (2, 1)
+        p.position = np.array([0.0, 0.0])  # (2,)
+        p.velocity = np.array([1.0, 0.0])  # (2,)
         return p
 
     @pytest.fixture
     def params(self) -> SimpleNamespace:
-        return SimpleNamespace(integration_scheme="euler", dt=1.0)
+        return SimpleNamespace(
+            integration_scheme="euler",
+            dt=1.0,
+            fov_radius=10.0,
+            tank_shape="rectangle",
+            tank_size=(100, 100),
+            delta=1.0,
+            gamma_wall=1.0,
+        )
 
     def test_moves_toward_centroid(self, predator: Predator, params: SimpleNamespace):
         """Predator should move toward center of prey."""
@@ -28,7 +36,7 @@ class TestPredatorUpdate:
         
         predator.update(prey_positions, params)  # type: ignore[arg-type]
         
-        assert predator.position[0, 0] > 0
+        assert predator.position[0] > 0
 
     def test_stationary_when_at_centroid(self, predator: Predator, params: SimpleNamespace):
         """No direction change when predator is at prey centroid."""

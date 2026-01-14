@@ -1,6 +1,6 @@
 from .school import School
 from .recorder import Recorder
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from .predator import Predator
 from typing import Literal
 import numpy as np
@@ -37,23 +37,45 @@ def _validate_params(params: SimulationParameters) -> None:
 
 
 def run_simulation(params: SimulationParameters) -> Recorder:
-    _validate_params(params)
-    school = School(n_fish=params.n_fish)
-    school.initialize_in_bounds(params.tank_shape, params.tank_size, params.v_initial)
-    
-    if params.predator:
-        predator = Predator()
-        predator.initialize_in_bounds(params.tank_shape, params.tank_size, params.predator_v_initial)
-    else:
-        predator = None
-    
-    predator_state = None
-    recorder = Recorder()
-    for step in range(params.num_steps):
-        state = school.update(params, predator)
-        
-        if predator:
-            predator_state = predator.update(school.positions, params)
+    return SimulationRunner(params).run()
 
-        recorder.record(timestamp=step*params.dt, snapshot=state, predator_snapshot=predator_state if predator else None)
-    return recorder
+
+@dataclass
+class SimulationRunner:
+    params: SimulationParameters
+    school: School = field(init=False)
+    predator: Predator | None = field(init=False)
+    recorder: Recorder = field(init=False)
+
+    def __post_init__(self) -> None:
+        _validate_params(self.params)
+        self.school = School(n_fish=self.params.n_fish)
+        self.school.initialize_in_bounds(
+            self.params.tank_shape, self.params.tank_size, self.params.v_initial
+        )
+
+        if self.params.predator:
+            predator = Predator()
+            predator.initialize_in_bounds(
+                self.params.tank_shape, self.params.tank_size, self.params.predator_v_initial
+            )
+            self.predator = predator
+        else:
+            self.predator = None
+
+        self.recorder = Recorder()
+
+    def run(self) -> Recorder:
+        for step in range(self.params.num_steps):
+            snapshot = self.school.update(self.params, self.predator)
+            predator_snapshot = None
+            if self.predator:
+                predator_snapshot = self.predator.update(self.school.positions, self.params)
+
+            self.recorder.record(
+                timestamp=step * self.params.dt,
+                snapshot=snapshot,
+                predator_snapshot=predator_snapshot,
+            )
+
+        return self.recorder
