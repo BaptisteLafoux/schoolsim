@@ -60,7 +60,7 @@ class ForcesCalculator:
     def get_noise_force(self, epsilon: float, n_fish: int):
         return np.random.normal(0, epsilon, (2, n_fish))
 
-    def get_propulsion_force(self, tau: float, v0: float):
+    def get_propulsion_force(self, tau: float, v0: float | np.ndarray):
         return (1 / tau) * (1 - self.Vnorm**2 / v0**2) * self.V
 
     def get_alignment_force(self, J: float):

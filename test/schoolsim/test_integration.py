@@ -105,3 +105,27 @@ class TestPredatorBehavior:
         
         # Predator should generally get closer (not guaranteed but likely)
         assert not np.allclose(first_pred.position, last_pred.position)
+
+
+class TestHeterogeneousV0:
+    def test_v0_array_simulation_runs(self, base_params: SimulationParameters):
+        """Simulation runs with per-fish v0 array."""
+        base_params.v0 = np.full(base_params.n_fish, 1.0)
+        recorder = run_simulation(base_params)
+        assert len(recorder.snapshots) == base_params.num_steps
+
+    def test_v0_varied_speeds(self, base_params: SimulationParameters):
+        """Simulation with varied fish speeds."""
+        base_params.v0 = np.random.uniform(0.5, 1.5, base_params.n_fish)
+        recorder = run_simulation(base_params)
+        assert len(recorder.snapshots) == base_params.num_steps
+        
+        # Forces should still be finite
+        _, final_snap, _ = recorder.snapshots[-1]
+        assert np.all(np.isfinite(final_snap.f_propulsion))
+
+    def test_v0_wrong_shape_raises(self, base_params: SimulationParameters):
+        """Wrong v0 array shape should raise ValueError."""
+        base_params.v0 = np.array([1.0, 2.0])  # wrong size
+        with pytest.raises(ValueError, match="v0 must be"):
+            run_simulation(base_params)
