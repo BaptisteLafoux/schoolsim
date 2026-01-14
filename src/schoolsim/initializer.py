@@ -6,7 +6,7 @@ def initialize_positions_rectangle(
     w, h = tank_size
     x = np.random.uniform(-w / 2, w / 2, n_fish)
     y = np.random.uniform(-h / 2, h / 2, n_fish)
-    return np.c_[x, y]
+    return np.array([x, y])  # shape (2, N)
 
 
 def initialize_positions_circle(n_fish: int, tank_radius: int) -> np.ndarray:
@@ -14,7 +14,7 @@ def initialize_positions_circle(n_fish: int, tank_radius: int) -> np.ndarray:
     r = np.random.uniform(0, tank_radius, n_fish)
     x = r * np.cos(theta)
     y = r * np.sin(theta)
-    return np.c_[x, y]
+    return np.array([x, y])  # shape (2, N)
 
 
 def initialize_velocities(n_fish: int, v_initial: float) -> np.ndarray:

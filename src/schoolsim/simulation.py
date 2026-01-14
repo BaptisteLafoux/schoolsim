@@ -1,8 +1,8 @@
 from .school import School
-from .recorder import Recorder, Snapshot
+from .recorder import Recorder
 from dataclasses import dataclass
-
-from typing import Literal, Optional
+from .predator import Predator
+from typing import Literal
 
 @dataclass
 class SimulationParameters:
@@ -22,12 +22,27 @@ class SimulationParameters:
     n_fish: int
     delta: float
     gamma_wall: float
+    predator: bool
+    predator_v_initial: float
+    flee_strength: float
 
 def run_simulation(params: SimulationParameters) -> Recorder:
     school = School(n_fish=params.n_fish)
     school.initialize_in_bounds(params.tank_shape, params.tank_size, params.v_initial)
+    
+    if params.predator:
+        predator = Predator()
+        predator.initialize_in_bounds(params.tank_shape, params.tank_size, params.predator_v_initial)
+    else:
+        predator = None
+    
+    predator_state = None
     recorder = Recorder()
     for step in range(params.num_steps):
-        state = school.make_step(params)
-        recorder.record(snapshot=state, timestamp=step*params.dt)
+        state = school.update(params, predator)
+        
+        if predator:
+            predator_state = predator.update(school.positions, params)
+
+        recorder.record(timestamp=step*params.dt, snapshot=state, predator_snapshot=predator_state if predator else None)
     return recorder

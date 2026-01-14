@@ -9,9 +9,9 @@ class ForcesCalculator:
         Initialize the ForcesCalculator class.
 
         Args:
-            X: (N, 2) array of positions
-            V: (N, 2) array of velocities
-            R: float, radius of the field of view
+            X: (2, N) array of positions
+            V: (2, N) array of velocities
+            fov_radius: float, radius of the field of view
         """
         self.X = X
         self.V = V
@@ -158,4 +158,19 @@ class ForcesCalculator:
             case _:
                 raise ValueError(f"Invalid tank shape: {tank_shape}")
             
+    def get_flee_force(self, predator_pos: np.ndarray, flee_radius: float, flee_strength: float) -> np.ndarray:
+        """Fish flee from predator if within range."""
+        diff = self.X - predator_pos[:, None]  # (2, N) direction away from predator
+        dist = np.linalg.norm(diff, axis=0)    # (N,)
         
+        # Only flee if within radius
+        in_range = (dist < flee_radius).astype(float)
+        
+        # Normalize direction (avoid div by zero)
+        dist_safe = np.maximum(dist, 1e-10)
+        direction = diff / dist_safe
+        
+        # Stronger flee when closer (inverse distance)
+        strength = flee_strength * (1 / dist_safe) * in_range
+        
+        return direction * strength
